@@ -1,0 +1,8 @@
+.idea
+bin/
+obj/
+*.suo
+.vs/
+node_modules/
+wwwroot/_framework/
+*.log
