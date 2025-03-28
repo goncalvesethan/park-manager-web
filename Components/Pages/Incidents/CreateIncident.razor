@@ -1,0 +1,89 @@
+@page "/incidents/create"
+@using Models
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+
+<PageTitle>Créer un incident</PageTitle>
+
+<h3>Créer un incident</h3>
+
+@if (devices == null)
+{
+    <p>Chargement des postes...</p>
+}
+else
+{
+    <EditForm Model="incident" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator/>
+        <ValidationSummary/>
+
+        <div class="mb-3">
+            <label for="deviceSelect" class="form-label">Poste de travail</label>
+            <select class="form-select" @bind="incident.DeviceId" id="deviceSelect">
+                <option value="">-- Sélectionner un poste --</option>
+                @foreach (var device in devices)
+                {
+                    <option value="@device.Id">@device.Name</option>
+                }
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="typeSelect" class="form-label">Type d'incident</label>
+            <select class="form-select" @bind="incident.Type" id="typeSelect">
+                <option value="">-- Sélectionner un type --</option>
+                <option value="Matériel">Matériel</option>
+                <option value="Logiciel">Logiciel</option>
+                <option value="Réseau">Réseau</option>
+                <option value="Autre">Autre</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea type="text" class="form-control" id="description" @bind="incident.Description"/>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Créer</button>
+    </EditForm>
+}
+
+@code {
+    private Incident incident = new Incident();
+    private List<Device>? devices;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            devices = await HttpClient.GetFromJsonAsync<List<Device>>("api/devices");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur lors du chargement des postes : " + ex.Message);
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            incident.ReporterId = 1;
+            var response = await HttpClient.PostAsJsonAsync("api/incidents", incident);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/incidents");
+            }
+            else
+            {
+                Console.WriteLine("Échec de la création de l'incident : " + response.ReasonPhrase);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur lors de la soumission : " + ex.Message);
+        }
+    }
+
+}
