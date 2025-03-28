@@ -1,0 +1,104 @@
+﻿@page "/devices"
+@using Models
+@inject HttpClient HttpClient
+
+<PageTitle>Postes de travail</PageTitle>
+
+<div>
+    <div class="">
+        <h2>Postes de travail</h2>
+        @if(devices == null){
+            <div class="d-flex justify-content-center my-4">
+                <div class="alert alert-info text-center" role="alert" style="width: 100%;">
+                    Informations en cours de chargement...
+                </div>
+            </div>
+        } else {
+        <div class="d-flex flex-row justify-content-end">
+            <div class="mx-2">
+                <a href="/devices/create" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                    Créer un poste
+                </a>
+            </div>
+        </div>
+        <table class="table table-stripped">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Parc</th>
+                    <th scope="col">N° de salle</th>
+                    <th scope="col">Processeur</th>
+                    <th scope="col">RAM</th>
+                    <th scope="col">Stockage</th>
+                    <th scope="col">Adresse MAC</th>
+                    <th scope="col">Adresse IP</th>
+                    <th scope="col">État</th>
+                    <th class="text-center" scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (devices != null)
+                {
+                    @foreach (var device in devices)
+                    {
+                        <tr class="align-middle">
+                            <th scope="row">@device.Id</th>
+                            <td>@(device.Park?.Name)</td>
+                            <td>@(device.Room?.Name)</td>
+                            <td>@(device.Processor ?? "N/A")</td>
+                            <td>@(device.Ram.HasValue ? (device.Ram.Value / 1000) + " Go" : "N/A")</td>
+                            <td>@(device.Storage.HasValue ?
+                                    ((device.Storage.Value >= 1000) ? (device.Storage.Value / 1000) + " To" : device.Storage.Value +
+                                    " Go") : "N/A")</td>
+                            <td>@device.MacAddress.ToUpper()</td>
+                            <td>@(string.IsNullOrEmpty(device.IpAddress) ? "N/A" : device.IpAddress)</td>
+                            <td>
+                                <div class="badge @(device.IsOnline ? "bg-success" : "bg-danger")" style="font-size: 0.8em;">
+                                    @(device.IsOnline ? "En ligne" : "Hors ligne")
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-row justify-content-center">
+                                    <a href="devices/@(device.Id)"><i class="bi bi-eye-fill fs-5 text-body-secondary"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="9" class="text-center">Chargement des postes...</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Device>? devices;
+    private List<Park>? parks;
+    private List<Room>? rooms;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            devices = await HttpClient.GetFromJsonAsync<List<Device>>("api/devices");
+            parks = await HttpClient.GetFromJsonAsync<List<Park>>("api/parks");
+            rooms = await HttpClient.GetFromJsonAsync<List<Room>>("api/rooms");
+
+            foreach (var device in devices)
+            {
+                device.Park = parks.FirstOrDefault(p => p.Id == device.ParkId);
+                device.Room = rooms.FirstOrDefault(r => r.Id == device.RoomId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("Erreur lors du chargement des données : " + ex.Message);
+        }
+    }
+}
