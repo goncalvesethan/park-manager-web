@@ -7,6 +7,8 @@ namespace Models
         public int Id { get; set; }
         public int ParkId { get; set; }
         public int RoomId { get; set; }
+        public string Name { get; set; }
+        public string? Brand { get; set; }
         public string? Processor { get; set; }
         public int? Ram { get; set; }
         public int? Storage { get; set; }
