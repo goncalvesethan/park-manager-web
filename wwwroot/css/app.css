@@ -12,14 +12,22 @@ a, .btn-link {
     color: #0071c1;
 }
 
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+.bi{
+    margin-right: 7px;
+    margin-left: 7px;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+.nav-link.active {
+    background-color: #007bff; /* Or your preferred active color */
+    color: #FFFFFF !important; /* Ensure text is visible */
+}
+
+.nav-link { /* Style for inactive links */
+    color: #000000 !important; /* Or your preferred inactive color */
+}
+
+.dropdown-menu.dropdown-menu-dark { /* Style for dark dropdown */
+    background-color: #343a40; /* Example dark background */
 }
 
 .content {
