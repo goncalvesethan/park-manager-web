@@ -1,0 +1,27 @@
+@inject NavigationManager NavigationManager
+
+<div class="sidebar d-flex flex-column flex-shrink-0 p-3 bg-body-secondary" style="width: 280px">
+    <a href="/" class="d-flex flex-column justify-content-center text-center fs-4 fw-bold nav-link">
+        Gestion de parc </a>
+    <hr>
+    <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item">
+            <NavLink href="/" class="nav-link d-flex flex-row align-items-center" Match="NavLinkMatch.All">
+                <i class="bi bi-house" style="font-size: 1.2em;"></i>
+                <div class="ms-2">
+                    Tableau de bord
+                </div>
+            </NavLink>
+        </li>
+    </ul>
+    <div class="dropdown">
+        <a href="#" class="d-flex align-items-center link-body-emphasis text-decoration-none dropdown-toggle"
+            data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="https://github.com/goncalvesethan.png" alt="" width="32" height="32" class="rounded-circle me-2">
+            <strong>goncalvesethan</strong>
+        </a>
+        <ul class="dropdown-menu text-small shadow">
+            <li><a class="dropdown-item" href="#">Sign out</a></li>
+        </ul>
+    </div>
+</div>
