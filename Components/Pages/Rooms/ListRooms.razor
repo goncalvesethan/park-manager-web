@@ -1,0 +1,91 @@
+﻿@page "/rooms"
+@inject HttpClient HttpClient
+@using Models
+
+<PageTitle>Salles</PageTitle>
+
+<div>
+    <div class="">
+        <h2>Salles</h2>
+        @if (rooms == null)
+        {
+            <div class="d-flex justify-content-center my-4">
+                <div class="alert alert-info text-center" role="alert" style="width: 100%;">
+                    Informations en cours de chargement...
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex flex-row justify-content-end my-3">
+                <div class="mx-2">
+                    <a href="rooms/create" class="btn btn-primary">
+                        Créer une salle
+                    </a>
+                </div>
+            </div>
+            <table class="table table-stripped">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Parc</th>
+                        <th scope="col">Nom</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Capacité</th>
+                        <th class="text-center" scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (rooms != null)
+                    {
+                        @foreach (var room in rooms)
+                        {
+                            <tr class="align-middle">
+                                <th scope="row">@room.Id</th>
+                                <td>@room.Park.Name</td>
+                                <td>@room.Name</td>
+                                <td>@room.Type</td>
+                                <td>@room.Capacity</td>
+                                <td>
+                                    <div class="d-flex flex-row justify-content-center">
+                                        <a href="rooms/@(room.Id)"><i class="bi bi-eye-fill fs-5 text-body-secondary"></i></a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center">Chargement des salles...</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Room>? rooms;
+    private List<Park>? parks;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            rooms = await HttpClient.GetFromJsonAsync<List<Room>>("api/rooms");
+            parks = await HttpClient.GetFromJsonAsync<List<Park>>("api/parks");
+
+            foreach (var room in rooms)
+            {
+                room.Park = parks.FirstOrDefault(p => p.Id == room.ParkId);
+            }
+
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("Erreur lors du chargement des données : " + ex.Message);
+        }
+    }
+}
