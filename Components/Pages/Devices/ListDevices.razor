@@ -16,9 +16,9 @@
         } else {
         <div class="d-flex flex-row justify-content-end">
             <div class="mx-2">
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                <a href="/devices/create" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
                     Créer un poste
-                </button>
+                </a>
             </div>
         </div>
         <table class="table table-stripped">
@@ -43,8 +43,8 @@
                     {
                         <tr class="align-middle">
                             <th scope="row">@device.Id</th>
-                            <td>@(device.ParkId)</td>
-                            <td>@(device.RoomId)</td>
+                            <td>@(device.Park?.Name)</td>
+                            <td>@(device.Room?.Name)</td>
                             <td>@(device.Processor ?? "N/A")</td>
                             <td>@(device.Ram.HasValue ? (device.Ram.Value / 1000) + " Go" : "N/A")</td>
                             <td>@(device.Storage.HasValue ?
@@ -79,12 +79,22 @@
 
 @code {
     private List<Device>? devices;
+    private List<Park>? parks;
+    private List<Room>? rooms;
     
     protected override async Task OnInitializedAsync()
     {
         try
         {
             devices = await HttpClient.GetFromJsonAsync<List<Device>>("api/devices");
+            parks = await HttpClient.GetFromJsonAsync<List<Park>>("api/parks");
+            rooms = await HttpClient.GetFromJsonAsync<List<Room>>("api/rooms");
+
+            foreach (var device in devices)
+            {
+                device.Park = parks.FirstOrDefault(p => p.Id == device.ParkId);
+                device.Room = rooms.FirstOrDefault(r => r.Id == device.RoomId);
+            }
         }
         catch (Exception ex)
         {
