@@ -1,0 +1,61 @@
+@page "/login"
+@using Models
+@using ParkManagerWeb.Services
+@layout GuestLayout
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
+
+<div class="d-flex align-items-center justify-content-center vh-100">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="text-center mb-4">Connexion</h3>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                <div class="alert alert-danger">@errorMessage</div>
+                }
+
+                <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" @bind="loginModel.Email" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Mot de passe</label>
+                        <input type="password" class="form-control" id="password" @bind="loginModel.Password" />
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Connexion</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private string errorMessage = "";
+
+    private async Task HandleLogin()
+    {
+        errorMessage = "";
+        bool success = await AuthService.LoginAsync(loginModel);
+
+        if (success)
+        {
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            errorMessage = "Échec de la connexion, vérifiez vos identifiants.";
+        }
+    }
+}
