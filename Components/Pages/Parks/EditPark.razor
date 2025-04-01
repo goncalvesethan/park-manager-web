@@ -1,0 +1,79 @@
+@page "/parks/{id:int}/edit"
+@using Models
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+@attribute [Authorize]
+
+<PageTitle>Modifier un parc</PageTitle>
+
+<h3>Modifier le parc</h3>
+
+@if (isLoading)
+{
+    <p>Chargement en cours...</p>
+}
+else if (park == null)
+{
+    <div class="alert alert-danger">Parc non trouvé.</div>
+}
+else
+{
+    <EditForm Model="park" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label for="name" class="form-label">Nom</label>
+            <input type="text" class="form-control" id="name" @bind="park.Name" />
+        </div>
+
+        <div class="mb-3">
+            <label for="location" class="form-label">Localisation</label>
+            <input type="text" class="form-control" id="location" @bind="park.Location" />
+        </div>
+
+        <button type="submit" class="btn btn-success">Enregistrer les modifications</button>
+        <a href="/parks" class="btn btn-secondary ms-2">Annuler</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public int id { get; set; }
+
+    private Park? park;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            park = await HttpClient.GetFromJsonAsync<Park>($"api/parks/{id}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur de chargement du parc : " + ex.Message);
+        }
+        isLoading = false;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            var response = await HttpClient.PutAsJsonAsync($"api/parks/{id}", park);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/parks");
+            }
+            else
+            {
+                Console.WriteLine("Erreur lors de la mise à jour : " + response.ReasonPhrase);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur lors de la soumission : " + ex.Message);
+        }
+    }
+}

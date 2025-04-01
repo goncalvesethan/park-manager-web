@@ -1,0 +1,52 @@
+@page "/parks/create"
+@using Models
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+@attribute [Authorize]
+
+<PageTitle>Créer un parc</PageTitle>
+
+<h3>Créer un nouveau parc</h3>
+
+    <EditForm Model="park" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator/>
+        <ValidationSummary/>
+
+        <div class="mb-3">
+            <label for="name" class="form-label">Nom</label>
+            <input type="text" class="form-control" id="name" @bind="park.Name"/>
+        </div>
+        
+        <div class="mb-3">
+            <label for="location" class="form-label">Localisation</label>
+            <input type="text" class="form-control" id="location" @bind="park.Location"/>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Créer</button>
+    </EditForm>
+
+@code {
+    private Park park = new Park();
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            var response = await HttpClient.PostAsJsonAsync("api/parks", park);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/parks");
+            }
+            else
+            {
+                Console.WriteLine("Échec de la création du parc : " + response.ReasonPhrase);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur lors de la soumission : " + ex.Message);
+        }
+    }
+
+}

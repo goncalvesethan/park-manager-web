@@ -1,0 +1,81 @@
+﻿@page "/parks"
+@inject HttpClient HttpClient
+@using Models
+@attribute [Authorize]
+
+<PageTitle>Parcs</PageTitle>
+
+<div>
+    <div class="">
+        <h2>Parcs</h2>
+        @if (parks == null)
+        {
+            <div class="d-flex justify-content-center my-4">
+                <div class="alert alert-info text-center" role="alert" style="width: 100%;">
+                    Informations en cours de chargement...
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex flex-row justify-content-end my-3">
+                <div class="mx-2">
+                    <a href="parks/create" class="btn btn-primary">
+                        Créer un parc
+                    </a>
+                </div>
+            </div>
+            <table class="table table-stripped">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Nom</th>
+                        <th scope="col">Localisation</th>
+                        <th class="text-center" scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (parks != null)
+                    {
+                        @foreach (var park in parks)
+                        {
+                            <tr class="align-middle">
+                                <th scope="row">@park.Id</th>
+                                <td>@park.Name</td>
+                                <td>@park.Location</td>
+                                <td>
+                                    <div class="d-flex flex-row justify-content-center align-items-center">
+                                        <a href="parks/@(park.Id)"><i class="bi bi-eye-fill fs-5 text-body-secondary"></i></a>
+                                        <a href="parks/@(park.Id)/edit"><i class="bi bi-pen-fill fs-6 text-body-secondary"></i></a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center">Chargement des parks...</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Park>? parks;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            parks = await HttpClient.GetFromJsonAsync<List<Park>>("api/parks");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("Erreur lors du chargement des données : " + ex.Message);
+        }
+    }
+}
