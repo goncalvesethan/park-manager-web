@@ -1,5 +1,5 @@
 ﻿@page "/rooms/{id:int}"
-@inject HttpClient Http
+@inject HttpClient HttpClient
 @using Models
 @using System.Text.Json.Serialization
 
@@ -28,7 +28,7 @@
                     <div class="col-md-6">
                         <div class="d-flex align-items-center">
                             <i class="bi bi-geo-alt me-2 text-black" style="font-size: 1.7em;"></i>
-                            <div><span class="fw-bold">Parc : </span> @parkName</div>
+                            <div><span class="fw-bold">Parc : </span> @room.Park.Name</div>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -45,7 +45,7 @@
                     </div>
                     <div class="col-md-6">
                         <div class="d-flex align-items-center">
-                            <i class="bi bi-gear me-2 text-black" style="font-size: 1.7em;"></i>
+                            <i class="bi bi-people me-2 text-black" style="font-size: 1.7em;"></i>
                             <div><span class="fw-bold">Capacité : </span> @room.Capacity</div>
                         </div>
                     </div>
@@ -62,7 +62,7 @@
             <thead>
                 <tr>
                     <th scope="col">#</th>
-                    <th scope="col">Parc</th>
+                    <th scope="col">Nom</th>
                     <th scope="col">Processeur</th>
                     <th scope="col">RAM</th>
                     <th scope="col">Stockage</th>
@@ -77,10 +77,9 @@
                 {
                     @foreach (var device in devices)
                     {
-                        var parkName = parks.FirstOrDefault(p => p.Id == device.ParkId)?.Name;
                         <tr class="align-middle">
                             <th scope="row">@device.Id</th>
-                            <td>@parkName</td>
+                            <td>@device.Name</td>
                             <td>@(device.Processor ?? "N/A")</td>
                             <td>@(device.Ram.HasValue ? (device.Ram.Value / 1000) + " Go" : "N/A")</td>
                             <td>@(device.Storage.HasValue ?
@@ -117,31 +116,16 @@
 @code {
     [Parameter] public int id { get; set; } // Récupère l'ID depuis l'URL
     private Room? room;
-    private string? parkName;
-    private Device[] devices;
-    private Park[] parks;
+    private List<Device>? devices;
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var allDevices = await Http.GetFromJsonAsync<Device[]>("http://localhost:5267/data/devices.json");
-            parks = await Http.GetFromJsonAsync<Park[]>("http://localhost:5267/data/parks.json");
-            var rooms = await Http.GetFromJsonAsync<Room[]>("http://localhost:5267/data/rooms.json");
-
-            if (rooms != null)
-            {
-                room = rooms.FirstOrDefault(r => r.Id == id);
-            }
-
-            if (allDevices != null && room != null)
-            {
-                devices = allDevices.Where(d => d.RoomId == id).ToArray();
-            }
-
-            if(room != null && parks != null){
-                parkName = parks.FirstOrDefault(park => park.Id == room.ParkId)?.Name;
-            }
-
+            room = await HttpClient.GetFromJsonAsync<Room>($"api/rooms/{id}");
+            devices = await HttpClient.GetFromJsonAsync<List<Device>>("api/devices");
+            room.Park = await HttpClient.GetFromJsonAsync<Park>($"api/parks/{room.ParkId}");
+            
+            devices = devices.Where(d => d.RoomId == room.Id).ToList();
         }
         catch (Exception ex)
         {
