@@ -39,6 +39,11 @@
         <input type="text" class="form-control" id="macAddress" @bind="device.MacAddress" />
     </div>
 
+    <div class="mb-3">
+        <label for="name" class="form-label">Nom</label>
+        <input type="text" class="form-control" id="name" @bind="device.Name" />
+    </div>
+
     <button type="submit" class="btn btn-primary">Créer</button>
 </EditForm>
 
@@ -70,6 +75,7 @@
                 parkId = device.ParkId,
                 roomId = device.RoomId,
                 macAddress = device.MacAddress,
+                name = device.Name,
             });
             
             if (response.IsSuccessStatusCode)

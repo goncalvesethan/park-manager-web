@@ -15,15 +15,15 @@
                 </div>
             </div>
         } else {
-        <div class="d-flex flex-row justify-content-end my-3">
-            <div class="mx-2">
-                <a href="/devices/create" class="btn btn-primary">
-                    Créer un poste
-                </a>
+            <div class="d-flex flex-row justify-content-end my-3">
+                <div class="mx-2">
+                    <a href="/devices/create" class="btn btn-primary">
+                        Créer un poste
+                    </a>
+                </div>
             </div>
-        </div>
-        <table class="table table-stripped">
-            <thead>
+            <table class="table table-stripped">
+                <thead>
                 <tr>
                     <th scope="col">#</th>
                     <th scope="col">Parc</th>
@@ -36,8 +36,8 @@
                     <th scope="col">État</th>
                     <th class="text-center" scope="col">Actions</th>
                 </tr>
-            </thead>
-            <tbody>
+                </thead>
+                <tbody>
                 @if (devices != null)
                 {
                     @foreach (var device in devices)
@@ -50,7 +50,7 @@
                             <td>@(device.Ram.HasValue ? (device.Ram.Value / 1000) + " Go" : "N/A")</td>
                             <td>@(device.Storage.HasValue ?
                                     ((device.Storage.Value >= 1000) ? (device.Storage.Value / 1000) + " To" : device.Storage.Value +
-                                    " Go") : "N/A")</td>
+                                                                                                              " Go") : "N/A")</td>
                             <td>@device.MacAddress.ToUpper()</td>
                             <td>@(string.IsNullOrEmpty(device.IpAddress) ? "N/A" : device.IpAddress)</td>
                             <td>
@@ -59,8 +59,12 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="d-flex flex-row justify-content-center">
+                                <div class="d-flex flex-row justify-content-center align-items-center">
                                     <a href="devices/@(device.Id)"><i class="bi bi-eye-fill fs-5 text-body-secondary"></i></a>
+                                    <a href="devices/@(device.Id)/edit"><i class="bi bi-pen-fill fs-6 text-body-secondary"></i></a>
+                                    <button class="btn btn-link p-0" @onclick="() => OpenDeleteModal(device)">
+                                        <i class="bi bi-trash3-fill fs-6 text-danger"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -72,16 +76,38 @@
                         <td colspan="9" class="text-center">Chargement des postes...</td>
                     </tr>
                 }
-            </tbody>
-        </table>
+                </tbody>
+            </table>
         }
     </div>
 </div>
+
+@if (deviceToDelete != null)
+{
+<div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le poste <strong>@deviceToDelete.Name</strong> ?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDeleteModal">Annuler</button>
+                <button class="btn btn-danger" @onclick="DeleteDeviceConfirmed">Supprimer</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
 
 @code {
     private List<Device>? devices;
     private List<Park>? parks;
     private List<Room>? rooms;
+    private Device? deviceToDelete;
     
     protected override async Task OnInitializedAsync()
     {
@@ -100,6 +126,41 @@
         catch (Exception ex)
         {
             Console.Error.WriteLine("Erreur lors du chargement des données : " + ex.Message);
+        }
+    }
+    
+    private void OpenDeleteModal(Device device)
+    {
+        deviceToDelete = device;
+    }
+
+    private void CloseDeleteModal()
+    {
+        deviceToDelete = null;
+    }
+
+    private async Task DeleteDeviceConfirmed()
+    {
+        if (deviceToDelete == null)
+            return;
+
+        try
+        {
+            var response = await HttpClient.DeleteAsync($"api/devices/{deviceToDelete.Id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                devices?.Remove(deviceToDelete);
+                CloseDeleteModal();
+            }
+            else
+            {
+                Console.WriteLine($"Erreur lors de la suppression : {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur : " + ex.Message);
         }
     }
 }
