@@ -1,9 +1,164 @@
 ﻿@page "/"
 @layout MainLayout
+@inject HttpClient HttpClient
+@inject IJSRuntime JS
+@using Models
 @attribute [Authorize]
 
 <PageTitle>Tableau de bord</PageTitle>
 
-<h1>Tableau de bord</h1>
+<h2 class="mb-4">Tableau de bord</h2>
 
-<div>Bienvenue sur le tableau de bord de votre nouvelle appli !</div>
+@if (isLoading)
+{
+<p>Chargement des statistiques...</p>
+}
+else
+{
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card border-start-primary shadow h-100 py-2">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-building fs-2 text-primary me-3"></i>
+                <div>
+                    <div class="text-xs fw-bold text-primary text-uppercase mb-1">Parcs</div>
+                    <div class="h5 mb-0 fw-bold text-gray-800">@parkCount</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-start-secondary shadow h-100 py-2">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-door-open fs-2 text-secondary me-3"></i>
+                <div>
+                    <div class="text-xs fw-bold text-secondary text-uppercase mb-1">Salles</div>
+                    <div class="h5 mb-0 fw-bold text-gray-800">@roomCount</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-start-success shadow h-100 py-2">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-pc-display fs-2 text-success me-3"></i>
+                <div>
+                    <div class="text-xs fw-bold text-success text-uppercase mb-1">Postes</div>
+                    <div class="h5 mb-0 fw-bold text-gray-800">@deviceCount</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-start-info shadow h-100 py-2">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-wifi fs-2 text-info me-3"></i>
+                <div>
+                    <div class="text-xs fw-bold text-info text-uppercase mb-1">Postes en ligne</div>
+                    <div class="h5 mb-0 fw-bold text-gray-800">@onlineDeviceCount</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-start-danger shadow h-100 py-2">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle fs-2 text-danger me-3"></i>
+                <div>
+                    <div class="text-xs fw-bold text-danger text-uppercase mb-1">Incidents</div>
+                    <div class="h5 mb-0 fw-bold text-gray-800">@incidentCount</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-start-warning shadow h-100 py-2">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-tools fs-2 text-warning me-3"></i>
+                <div>
+                    <div class="text-xs fw-bold text-warning text-uppercase mb-1">Incidents non résolus</div>
+                    <div class="h5 mb-0 fw-bold text-gray-800">@openIncidentCount</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-4">
+            <div class="card border-start-primary shadow-sm p-3">
+                <div class="card-body d-flex flex-column align-items-center">
+                    <h5 class="card-title text-center mb-4">Postes en ligne / hors ligne</h5>
+                    <canvas id="devicePieChart" class="chart-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card border-start-warning shadow-sm p-3">
+                <div class="card-body d-flex flex-column align-items-center">
+                    <h5 class="card-title text-center mb-4">Incidents résolus / non résolus</h5>
+                    <canvas id="incidentPieChart" class="chart-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+}
+
+@code {
+    private int parkCount;
+    private int roomCount;
+    private int deviceCount;
+    private int onlineDeviceCount;
+    private int incidentCount;
+    private int openIncidentCount;
+    private bool isLoading = true;
+    private bool chartsRendered = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var parks = await HttpClient.GetFromJsonAsync<List<Park>>("api/parks");
+            var rooms = await HttpClient.GetFromJsonAsync<List<Room>>("api/rooms");
+            var devices = await HttpClient.GetFromJsonAsync<List<Device>>("api/devices");
+            var incidents = await HttpClient.GetFromJsonAsync<List<Incident>>("api/incidents");
+
+            parkCount = parks?.Count ?? 0;
+            roomCount = rooms?.Count ?? 0;
+            deviceCount = devices?.Count ?? 0;
+            onlineDeviceCount = devices?.Count(d => d.IsOnline) ?? 0;
+            incidentCount = incidents?.Count ?? 0;
+            openIncidentCount = incidents?.Count(i => i.Status?.ToLower() != "closed") ?? 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur lors du chargement du tableau de bord : " + ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!chartsRendered && !isLoading)
+        {
+            chartsRendered = true;
+
+            await JS.InvokeVoidAsync("chartInterop.drawPieChart", "devicePieChart",
+                new[] { "En ligne", "Hors ligne" },
+                new[] { onlineDeviceCount, deviceCount - onlineDeviceCount },
+                new[] { "#4CAF50", "#F44336" });
+
+            await JS.InvokeVoidAsync("chartInterop.drawPieChart", "incidentPieChart",
+                new[] { "Résolus", "Non résolus" },
+                new[] { incidentCount - openIncidentCount, openIncidentCount },
+                new[] { "#2196F3", "#FFC107" });
+        }
+    }
+
+}
+
