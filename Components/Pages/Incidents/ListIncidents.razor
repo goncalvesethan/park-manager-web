@@ -1,0 +1,163 @@
+﻿@page "/incidents"
+@inject HttpClient HttpClient
+@using Models
+@attribute [Authorize]
+
+<PageTitle>Incidents</PageTitle>
+
+<div>
+    <div class="">
+        <h2>Incidents</h2>
+        @if (incidents == null)
+        {
+            <div class="d-flex justify-content-center my-4">
+                <div class="alert alert-info text-center" role="alert" style="width: 100%;">
+                    Informations en cours de chargement...
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex flex-row justify-content-end my-3">
+                <div class="mx-2">
+                    <a href="/incidents/create" class="btn btn-primary">
+                        Créer un incident
+                    </a>
+                </div>
+            </div>
+            <table class="table table-stripped table-hover">
+                <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Statut</th>
+                    <th scope="col">Parc</th>
+                    <th scope="col">Poste</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Signalé par</th>
+                    <th scope="col">Date</th>
+                    <th class="text-center" scope="col">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                @if (incidents != null)
+                {
+                    @foreach (var incident in incidents)
+                    {
+                        <tr class="align-middle">
+                            <th scope="row">@incident.Id</th>
+                            <td>@incident.Status</td>
+                            <td>@incident.Device?.Park?.Name</td>
+                            <td>@incident.Device?.Name</td>
+                            <td>@incident.Type</td>
+                            <td>@incident.Reporter?.Name</td>
+                            <td>@incident.CreatedAt.ToString("dd/MM/yyyy à HH:mm")</td>
+                            <td>
+                                <div class="d-flex flex-row justify-content-center">
+                                    <a href="/incidents/@incident.Id" class="text-body-secondary">
+                                        <i class="bi bi-eye-fill fs-5"></i>
+                                    </a>
+                                    <button class="btn btn-link p-0" @onclick="() => OpenDeleteModal(incident)">
+                                        <i class="bi bi-trash3-fill fs-6 text-danger"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="text-center">Chargement des incidents...</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@if (incidentToDelete != null)
+{
+<div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer l'incident ?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDeleteModal">Annuler</button>
+                <button class="btn btn-danger" @onclick="DeleteIncidentConfirmed">Supprimer</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+@code {
+    private List<Incident>? incidents;
+    private List<Device>? devices;
+    private List<Park>? parks;
+    private List<User>? users;
+    private Incident? incidentToDelete;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            incidents = await HttpClient.GetFromJsonAsync<List<Incident>>("api/incidents");
+            devices = await HttpClient.GetFromJsonAsync<List<Device>>("api/devices");
+            parks = await HttpClient.GetFromJsonAsync<List<Park>>("api/parks");
+            users = await HttpClient.GetFromJsonAsync<List<User>>("api/users");
+
+            foreach (var incident in incidents)
+            {
+                incident.Reporter = users.FirstOrDefault(u => u.Id == incident.ReporterId);
+                incident.Device = devices.FirstOrDefault(d => d.Id == incident.DeviceId);
+                incident.Device.Park = parks.FirstOrDefault(p => p.Id == incident.Device.ParkId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("Erreur lors du chargement des données : " + ex.Message);
+        }
+    }
+    
+    private void OpenDeleteModal(Incident incident)
+    {
+        incidentToDelete = incident;
+    }
+
+    private void CloseDeleteModal()
+    {
+        incidentToDelete = null;
+    }
+
+    private async Task DeleteIncidentConfirmed()
+    {
+        if (incidentToDelete == null)
+            return;
+
+        try
+        {
+            var response = await HttpClient.DeleteAsync($"api/incidents/{incidentToDelete.Id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                incidents?.Remove(incidentToDelete);
+                CloseDeleteModal();
+            }
+            else
+            {
+                Console.WriteLine($"Erreur lors de la suppression : {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur : " + ex.Message);
+        }
+    }
+}

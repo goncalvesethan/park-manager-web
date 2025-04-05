@@ -1,0 +1,175 @@
+﻿@page "/parks/{id:int}"
+@inject HttpClient HttpClient
+@using Models
+@attribute [Authorize]
+
+<PageTitle>Détails du parc</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <h2 class="py-2">Informations du parc</h2>
+        @if (park == null)
+        {
+            <div class="d-flex justify-content-center">
+                <div class="alert alert-info text-center" role="alert" style="width: 100%;">
+                    Informations en cours de chargement...
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-2">
+                <div class="col-md-3 text-center">
+                    <div>
+                        <i class="bi bi-geo-alt text-body-secondary" style="font-size: 7em;"></i>
+                    </div>
+                </div>
+                <div class="row col-md-6 d-flex flex-row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-tag me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div>
+                                <span class="fw-bold">Type : </span> @park.Name
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-people me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div>
+                                <span class="fw-bold">Capacité : </span> @park.Location
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <hr class="my-5">
+    <div class="row">
+        <div class="col" style="overflow-y: auto; max-height: 59vh;">
+            <h2 class="my-2">Liste des salles (parc)</h2>
+            <div>
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Parc</th>
+                        <th scope="col">Nom</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Capacité</th>
+                        <th class="text-center" scope="col">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @if (rooms != null)
+                    {
+                        @foreach (var room in rooms)
+                        {
+                            <tr class="align-middle">
+                                <th scope="row">@room.Id</th>
+                                <td>@room.Park?.Name</td>
+                                <td>@room.Name</td>
+                                <td>@room.Type</td>
+                                <td>@room.Capacity</td>
+                                <td>
+                                    <div class="d-flex flex-row justify-content-center">
+                                        <a href="rooms/@(room.Id)">
+                                            <i class="bi bi-eye-fill fs-5 text-body-secondary"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center">Chargement des salles...</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col" style="overflow-y: auto; max-height: 59vh;">
+            <h2 class="my-2">Liste des postes (parc)</h2>
+            <div>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Nom</th>
+                            <th scope="col">Adresse MAC</th>
+                            <th scope="col">Adresse IP</th>
+                            <th scope="col">État</th>
+                            <th class="text-center" scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (devices != null)
+                    {
+                        @foreach (var device in devices)
+                        {
+                            <tr class="align-middle">
+                                <th scope="row">@device.Id</th>
+                                <td>@device.Name</td>
+                                <td>@device.MacAddress?.ToUpper()</td>
+                                <td>@(string.IsNullOrEmpty(device.IpAddress) ? "N/A" : device.IpAddress)</td>
+                                <td>
+                                    <div class="badge @(device.IsOnline ? "bg-success" : "bg-danger")" style="font-size: 0.8em;">
+                                        @(device.IsOnline ? "En ligne" : "Hors ligne")
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-row justify-content-center">
+                                        <a href="devices/@(device.Id)">
+                                            <i class="bi bi-eye-fill fs-5 text-body-secondary"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center">Chargement des postes...</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int id { get; set; }
+    private List<Device>? devices;
+    private List<Room>? rooms;
+    private Park? park;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            park = await HttpClient.GetFromJsonAsync<Park>($"api/parks/{id}");
+            rooms = await HttpClient.GetFromJsonAsync<List<Room>>("api/rooms/");
+            devices = await HttpClient.GetFromJsonAsync<List<Device>>("api/devices");
+
+            if (park != null)
+            {
+                if (devices != null)
+                    devices = devices.Where(d => d.ParkId == park.Id).ToList();
+
+                if (rooms != null)
+                    rooms = rooms.Where(r => r.ParkId == park.Id).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Erreur lors du chargement des données : {ex.Message}");
+        }
+    }
+}

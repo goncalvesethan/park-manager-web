@@ -1,0 +1,106 @@
+@page "/devices/{id:int}/edit"
+@using Models
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+@attribute [Authorize]
+
+<PageTitle>Modifier un poste</PageTitle>
+
+<h3>Modifier un poste de travail</h3>
+
+@if (device == null || parks == null || rooms == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <EditForm Model="device" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label for="parkSelect" class="form-label">Parc</label>
+            <select class="form-select" @bind="device.ParkId" id="parkSelect">
+                <option value="">-- Sélectionner un parc --</option>
+                @foreach (var park in parks)
+                {
+                    <option value="@park.Id">@park.Name</option>
+                }
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="roomSelect" class="form-label">Salle</label>
+            <select class="form-select" @bind="device.RoomId" id="roomSelect">
+                <option value="">-- Sélectionner une salle --</option>
+                @foreach (var room in rooms)
+                {
+                    <option value="@room.Id">@room.Name</option>
+                }
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="macAddress" class="form-label">Adresse MAC</label>
+            <input type="text" class="form-control" id="macAddress" @bind="device.MacAddress" />
+        </div>
+
+        <div class="mb-3">
+            <label for="name" class="form-label">Nom</label>
+            <input type="text" class="form-control" id="name" @bind="device.Name" />
+        </div>
+
+        <button type="submit" class="btn btn-success">Enregistrer les modifications</button>
+        <a href="/devices" class="btn btn-secondary ms-2">Annuler</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+
+    private Device? device;
+    private List<Park>? parks;
+    private List<Room>? rooms;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            parks = await HttpClient.GetFromJsonAsync<List<Park>>("api/parks");
+            rooms = await HttpClient.GetFromJsonAsync<List<Room>>("api/rooms");
+            device = await HttpClient.GetFromJsonAsync<Device>($"api/devices/{id}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur lors du chargement des données : " + ex.Message);
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            var response = await HttpClient.PutAsJsonAsync($"api/devices/{id}", new
+            {
+                parkId = device.ParkId,
+                roomId = device.RoomId,
+                macAddress = device.MacAddress,
+                name = device.Name,
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/devices");
+            }
+            else
+            {
+                Console.WriteLine("Échec de la modification du poste : " + response.ReasonPhrase);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur lors de la soumission : " + ex.Message);
+        }
+    }
+}

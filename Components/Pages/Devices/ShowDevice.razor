@@ -1,0 +1,99 @@
+﻿@page "/devices/{id:int}"
+@inject HttpClient HttpClient
+@using Models
+@attribute [Authorize]
+
+<PageTitle>Détails du poste</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <h2>Informations du poste</h2>
+        @if (device == null)
+        {
+            <div class="d-flex justify-content-center">
+                <div class="alert alert-info text-center" role="alert" style="width: 100%;">
+                    Informations en cours de chargement...
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-2">
+                <div class="col-md-3 text-center">
+                    <div>
+                        <i class="bi bi-pc-display text-body-secondary" style="font-size: 7em;"></i>
+                    </div>
+                </div>
+                <div class="row col-md-8 d-flex flex-row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-geo-alt me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Parc : </span> @device.ParkId</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-door-open me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Salle : </span> @device.RoomId</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-cpu me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Processeur : </span> @(device.Processor ?? "N/A")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-memory me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">RAM : </span> @(device.Ram.HasValue ? (device.Ram.Value / 1000) + " Go" :
+                            "N/A")</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-hdd-stack me-2 text-black fw-bold" style="font-size: 1.7em;"></i>
+                        <div><span class="fw-bold">Stockage : </span>
+                        @(device.Storage.HasValue ?
+                                                ((device.Storage.Value >= 1000) ?
+                                                (device.Storage.Value / 1000) + " To" :
+                                                device.Storage.Value + " Go") :
+                                                "N/A")</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-motherboard me-2 text-black" style="font-size: 1.7em;"></i>
+                        <div><span class="fw-bold">Adresse MAC : </span> @device.MacAddress.ToUpper()</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-globe2 me-2 text-black" style="font-size: 1.7em;"></i>
+                        <div><span class="fw-bold">Adresse IP :</span>
+                        @(string.IsNullOrEmpty(device.IpAddress) ? "N/A" : device.IpAddress)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+    </div>
+    <hr class="my-5">
+</div>
+
+@code {
+    [Parameter] public int id { get; set; }
+    private Device? device;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            device = await HttpClient.GetFromJsonAsync<Device>($"api/devices/{id}");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Erreur lors du chargement des données : {ex.Message}");
+        }
+    }
+}

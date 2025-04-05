@@ -1,0 +1,117 @@
+﻿@page "/incidents/{id:int}"
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+@using Models
+@attribute [Authorize]
+
+<PageTitle>Détails de l'incident</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="d-flex flex-row justify-content-between align-items-center">
+            <div>
+                <h2>Détails de l'incident @(incident != null ? $"({incident.Status})" : "")</h2>
+            </div>
+            @if (incident != null && incident.Status == "open")
+            {
+                <div>
+                    <button type="submit" class="btn btn-success btn-sm" @onclick="ResolveIncident">
+                        <i class="bi bi-check-circle"></i>
+                        Résoudre
+                    </button>
+                </div>
+            }
+        </div>
+        @if (incident == null)
+        {
+            <div class="d-flex justify-content-center">
+                <div class="alert alert-info text-center" role="alert" style="width: 100%;">
+                    Informations en cours de chargement...
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-2">
+                <div class="col-md-3 text-center">
+                    <div>
+                        <i class="bi bi-bug text-body-secondary" style="font-size: 7em;"></i>
+                    </div>
+                </div>
+                <div class="row col-md-8 d-flex flex-row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-geo-alt me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Parc : </span> @incident.Device.Park.Name</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-door-open me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Poste : </span> @incident.Device.Name</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-cpu me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Type : </span> @incident.Type</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-cpu me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Date : </span> @incident.CreatedAt</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <hr class="my-5">
+    <div class="row">
+        <h2>Description</h2>
+        <div class="my-3">
+            @incident.Description
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int id { get; set; }
+    private Incident? incident;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            incident = await HttpClient.GetFromJsonAsync<Incident>($"api/incidents/{id}");
+            incident.Device = await HttpClient.GetFromJsonAsync<Device>($"api/devices/{incident.DeviceId}");
+            incident.Device.Park = await HttpClient.GetFromJsonAsync<Park>($"api/parks/{incident.Device.ParkId}");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Erreur lors du chargement des données : {ex.Message}");
+        }
+    }
+    
+    private async void ResolveIncident()
+    {
+        try
+        {
+            var response = await HttpClient.PatchAsync($"api/incidents/{id}/close", null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/incidents");
+            }
+            else
+            {
+                Console.WriteLine("Échec de la création de la salle : " + response.ReasonPhrase);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Erreur lors de l'envoi de la requête : {ex.Message}");
+        }
+    }
+}

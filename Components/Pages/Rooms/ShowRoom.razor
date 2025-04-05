@@ -1,0 +1,136 @@
+﻿@page "/rooms/{id:int}"
+@inject HttpClient HttpClient
+@using Models
+@using System.Text.Json.Serialization
+@attribute [Authorize]
+
+<PageTitle>Détails de la salle</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <h2 class="py-2">Informations de la salle</h2>
+        @if (room == null)
+        {
+            <div class="d-flex justify-content-center">
+                <div class="alert alert-info text-center" role="alert" style="width: 100%;">
+                    Informations en cours de chargement...
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-2">
+                <div class="col-md-3 text-center">
+                    <div>
+                        <i class="bi bi-door-open text-body-secondary" style="font-size: 7em;"></i>
+                    </div>
+                </div>
+                <div class="row col-md-6 d-flex flex-row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-geo-alt me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Parc : </span> @room.Park.Name</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-door-open me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Nom : </span> @room.Name</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-tag me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Type : </span> @room.Type</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-people me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Capacité : </span> @room.Capacity</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <hr class="my-5">
+    <div class="row">
+        <div class="col" style="overflow-y: auto; max-height: 59vh;">
+            <h2 class="my-2">Liste des poste (salle)</h2>
+            <div>
+                <table class="table table-stripped">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Nom</th>
+                    <th scope="col">Processeur</th>
+                    <th scope="col">RAM</th>
+                    <th scope="col">Stockage</th>
+                    <th scope="col">Adresse MAC</th>
+                    <th scope="col">Adresse IP</th>
+                    <th scope="col">État</th>
+                    <th class="text-center" scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (devices != null)
+                {
+                    @foreach (var device in devices)
+                    {
+                        <tr class="align-middle">
+                            <th scope="row">@device.Id</th>
+                            <td>@device.Name</td>
+                            <td>@(device.Processor ?? "N/A")</td>
+                            <td>@(device.Ram.HasValue ? (device.Ram.Value / 1000) + " Go" : "N/A")</td>
+                            <td>@(device.Storage.HasValue ?
+                                    ((device.Storage.Value >= 1000) ? (device.Storage.Value / 1000) + " To" : device.Storage.Value +
+                                    " Go") : "N/A")</td>
+                            <td>@device.MacAddress.ToUpper()</td>
+                            <td>@(string.IsNullOrEmpty(device.IpAddress) ? "N/A" : device.IpAddress)</td>
+                            <td>
+                                <div class="badge @(device.IsOnline ? "bg-success" : "bg-danger")" style="font-size: 0.8em;">
+                                    @(device.IsOnline ? "En ligne" : "Hors ligne")
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-row justify-content-center">
+                                    <a href="devices/@(device.Id)"><i class="bi bi-eye-fill fs-5 text-body-secondary"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="9" class="text-center">Chargement des postes...</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int id { get; set; } // Récupère l'ID depuis l'URL
+    private Room? room;
+    private List<Device>? devices;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            room = await HttpClient.GetFromJsonAsync<Room>($"api/rooms/{id}");
+            devices = await HttpClient.GetFromJsonAsync<List<Device>>("api/devices");
+            room.Park = await HttpClient.GetFromJsonAsync<Park>($"api/parks/{room.ParkId}");
+            
+            devices = devices.Where(d => d.RoomId == room.Id).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Erreur lors du chargement des données : {ex.Message}");
+        }
+    }
+}
