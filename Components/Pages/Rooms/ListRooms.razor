@@ -27,49 +27,75 @@
             </div>
             <table class="table table-stripped">
                 <thead>
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Parc</th>
-                        <th scope="col">Nom</th>
-                        <th scope="col">Type</th>
-                        <th scope="col">Capacité</th>
-                        <th class="text-center" scope="col">Actions</th>
-                    </tr>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Parc</th>
+                    <th scope="col">Nom</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Capacité</th>
+                    <th class="text-center" scope="col">Actions</th>
+                </tr>
                 </thead>
                 <tbody>
-                    @if (rooms != null)
+                @if (rooms != null)
+                {
+                    @foreach (var room in rooms)
                     {
-                        @foreach (var room in rooms)
-                        {
-                            <tr class="align-middle">
-                                <th scope="row">@room.Id</th>
-                                <td>@room.Park.Name</td>
-                                <td>@room.Name</td>
-                                <td>@room.Type</td>
-                                <td>@room.Capacity</td>
-                                <td>
-                                    <div class="d-flex flex-row justify-content-center">
-                                        <a href="rooms/@(room.Id)"><i class="bi bi-eye-fill fs-5 text-body-secondary"></i></a>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="9" class="text-center">Chargement des salles...</td>
+                        <tr class="align-middle">
+                            <th scope="row">@room.Id</th>
+                            <td>@room.Park.Name</td>
+                            <td>@room.Name</td>
+                            <td>@room.Type</td>
+                            <td>@room.Capacity</td>
+                            <td>
+                                <div class="d-flex flex-row justify-content-center align-items-center">
+                                    <a href="rooms/@(room.Id)"><i class="bi bi-eye-fill fs-5 text-body-secondary"></i></a>
+                                    <a href="rooms/@(room.Id)/edit"><i class="bi bi-pen-fill fs-6 text-body-secondary"></i></a>
+                                    <button class="btn btn-link p-0" @onclick="() => OpenDeleteModal(room)">
+                                        <i class="bi bi-trash3-fill fs-6 text-danger"></i>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="9" class="text-center">Chargement des salles...</td>
+                    </tr>
+                }
                 </tbody>
             </table>
         }
     </div>
 </div>
 
+@if (roomToDelete != null)
+{
+<div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer la salle <strong>@roomToDelete.Name</strong> ?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDeleteModal">Annuler</button>
+                <button class="btn btn-danger" @onclick="DeleteRoomConfirmed">Supprimer</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
 @code {
     private List<Room>? rooms;
     private List<Park>? parks;
+    private Room? roomToDelete;
     
     protected override async Task OnInitializedAsync()
     {
@@ -87,6 +113,41 @@
         catch (Exception ex)
         {
             Console.Error.WriteLine("Erreur lors du chargement des données : " + ex.Message);
+        }
+    }
+    
+    private void OpenDeleteModal(Room room)
+    {
+        roomToDelete = room;
+    }
+
+    private void CloseDeleteModal()
+    {
+        roomToDelete = null;
+    }
+
+    private async Task DeleteRoomConfirmed()
+    {
+        if (roomToDelete == null)
+            return;
+
+        try
+        {
+            var response = await HttpClient.DeleteAsync($"api/rooms/{roomToDelete.Id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                rooms?.Remove(roomToDelete);
+                CloseDeleteModal();
+            }
+            else
+            {
+                Console.WriteLine($"Erreur lors de la suppression : {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur : " + ex.Message);
         }
     }
 }

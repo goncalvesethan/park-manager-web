@@ -1,0 +1,101 @@
+@page "/rooms/{id:int}/edit"
+@using Models
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+@attribute [Authorize]
+
+<PageTitle>Modifier une salle</PageTitle>
+
+<h3>Modifier une salle</h3>
+
+@if (room == null || parks == null)
+{
+    <p>Chargement des données...</p>
+}
+else
+{
+    <EditForm Model="room" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator/>
+        <ValidationSummary/>
+
+        <div class="mb-3">
+            <label for="parkSelect" class="form-label">Parc</label>
+            <select class="form-select" @bind="room.ParkId" id="parkSelect">
+                <option value="">-- Sélectionner un parc --</option>
+                @foreach (var park in parks)
+                {
+                    <option value="@park.Id">@park.Name</option>
+                }
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="typeSelect" class="form-label">Type de salle</label>
+            <select class="form-select" @bind="room.Type" id="typeSelect">
+                <option value="">-- Sélectionner un type --</option>
+                <option value="Laboratoire">Laboratoire</option>
+                <option value="Réseau">Réseau</option>
+                <option value="Conférence">Conférence</option>
+                <option value="Bureau">Bureau</option>
+                <option value="Stockage">Stockage</option>
+                <option value="TP">TP</option>
+                <option value="Amphithéatre">Amphithéatre</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="name" class="form-label">Nom</label>
+            <input type="text" class="form-control" id="name" @bind="room.Name"/>
+        </div>
+
+        <div class="mb-3">
+            <label for="capacity" class="form-label">Capacité</label>
+            <input type="number" class="form-control" id="capacity" @bind="room.Capacity"/>
+        </div>
+
+        <button type="submit" class="btn btn-success">Enregistrer les modifications</button>
+        <a href="/parks" class="btn btn-secondary ms-2">Annuler</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+
+    private Room? room;
+    private List<Park>? parks;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            parks = await HttpClient.GetFromJsonAsync<List<Park>>("api/parks");
+            room = await HttpClient.GetFromJsonAsync<Room>($"api/rooms/{id}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur lors du chargement des données : " + ex.Message);
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            var response = await HttpClient.PutAsJsonAsync($"api/rooms/{id}", room);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/rooms");
+            }
+            else
+            {
+                Console.WriteLine("Échec de la mise à jour de la salle : " + response.ReasonPhrase);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur lors de la soumission : " + ex.Message);
+        }
+    }
+}
