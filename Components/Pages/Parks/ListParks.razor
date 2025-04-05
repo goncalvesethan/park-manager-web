@@ -47,6 +47,9 @@
                                     <div class="d-flex flex-row justify-content-center align-items-center">
                                         <a href="parks/@(park.Id)"><i class="bi bi-eye-fill fs-5 text-body-secondary"></i></a>
                                         <a href="parks/@(park.Id)/edit"><i class="bi bi-pen-fill fs-6 text-body-secondary"></i></a>
+                                        <button class="btn btn-link p-0" @onclick="() => OpenDeleteModal(park)">
+                                            <i class="bi bi-trash3-fill fs-6 text-danger"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -64,8 +67,30 @@
     </div>
 </div>
 
+@if (parkToDelete != null)
+{
+<div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le parc <strong>@parkToDelete.Name</strong> ?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseDeleteModal">Annuler</button>
+                <button class="btn btn-danger" @onclick="DeleteParkConfirmed">Supprimer</button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
 @code {
     private List<Park>? parks;
+    private Park? parkToDelete;
     
     protected override async Task OnInitializedAsync()
     {
@@ -76,6 +101,41 @@
         catch (Exception ex)
         {
             Console.Error.WriteLine("Erreur lors du chargement des données : " + ex.Message);
+        }
+    }
+    
+    private void OpenDeleteModal(Park park)
+    {
+        parkToDelete = park;
+    }
+
+    private void CloseDeleteModal()
+    {
+        parkToDelete = null;
+    }
+
+    private async Task DeleteParkConfirmed()
+    {
+        if (parkToDelete == null)
+            return;
+
+        try
+        {
+            var response = await HttpClient.DeleteAsync($"api/parks/{parkToDelete.Id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                parks?.Remove(parkToDelete);
+                CloseDeleteModal();
+            }
+            else
+            {
+                Console.WriteLine($"Erreur lors de la suppression : {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur : " + ex.Message);
         }
     }
 }
