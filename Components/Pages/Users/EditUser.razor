@@ -1,0 +1,113 @@
+@page "/users/{id:int}/edit"
+@using System.Diagnostics
+@using Models
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+@attribute [Authorize]
+
+<PageTitle>Modifier un utilisateur</PageTitle>
+
+<h3>Modifier l'utilisateur</h3>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (user == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <EditForm Model="user" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        
+        <div class="mb-3">
+            <label for="lastname" class="form-label">Nom</label>
+            <input type="text" class="form-control" id="lastname" @bind="user.Lastname" />
+        </div>
+
+        <div class="mb-3">
+            <label for="firstname" class="form-label">Prénom</label>
+            <input type="text" class="form-control" id="firstname" @bind="user.Firstname" />
+        </div>
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" @bind="user.Email" />
+        </div>
+
+        <div class="mb-3">
+            <label for="password" class="form-label">Nouveau mot de passe (laisser vide si inchangé)</label>
+            <input type="password" class="form-control" id="password" @bind="passwordValue" />
+        </div>
+
+        <div class="mb-3">
+            <label for="passwordConfirmation" class="form-label">Confirmation du mot de passe</label>
+            <input type="password" class="form-control" id="passwordConfirmation" @bind="passwordValueConfirmation" />
+        </div>
+
+        <div class="my-3">
+            <input type="checkbox" class="form-check-input" id="isAdmin" @bind="user.IsAdmin" />
+            <label class="form-check-label" for="isAdmin">Administrateur</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+        <a href="/users" class="btn btn-secondary ms-2">Annuler</a>
+        
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int id { get; set; }
+
+    private User? user;
+    private string passwordValue;
+    private string passwordValueConfirmation;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            user = await HttpClient.GetFromJsonAsync<User>($"api/users/{id}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Erreur lors du chargement de l'utilisateur : " + ex.Message;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        errorMessage = string.Empty;
+
+        if (!string.IsNullOrEmpty(passwordValue) && passwordValue != passwordValueConfirmation)
+        {
+            errorMessage = "Les mots de passe ne correspondent pas.";
+            return;
+        }
+
+        try
+        {
+            var response = await HttpClient.PutAsJsonAsync($"api/users/{id}", user);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/users");
+            }
+            else
+            {
+                errorMessage = "Échec de la mise à jour : " + response.ReasonPhrase;
+                Debug.Write(response);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Erreur lors de la soumission : " + ex.Message;
+        }
+    }
+}

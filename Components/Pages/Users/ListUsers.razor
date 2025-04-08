@@ -1,0 +1,139 @@
+﻿@page "/users"
+@using Models
+@inject HttpClient HttpClient
+@attribute [Authorize]
+
+<PageTitle>Utilisateurs</PageTitle>
+
+<div>
+    <div>
+        <h2>Utilisateurs</h2>
+        @if (users == null)
+        {
+            <div class="d-flex justify-content-center my-4">
+                <div class="alert alert-info text-center" role="alert" style="width: 100%;">
+                    Chargement des utilisateurs...
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex flex-row justify-content-end my-3">
+                <div class="mx-2">
+                    <a href="/users/create" class="btn btn-primary">Créer un utilisateur</a>
+                </div>
+            </div>
+
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nom</th>
+                        <th>Prénom</th>
+                        <th>Email</th>
+                        <th>Rôle</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in users)
+                    {
+                        <tr class="align-middle">
+                            <td>@user.Id</td>
+                            <td>@user.Lastname</td>
+                            <td>@user.Firstname</td>
+                            <td>@user.Email</td>
+                            <td>
+                                <span class="badge @(user.IsAdmin ? "bg-primary" : "bg-secondary")">
+                                    @(user.IsAdmin ? "Admin" : "Utilisateur")
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex flex-row justify-content-center align-items-center gap-2">
+                                    <a href="/users/@user.Id"><i class="bi bi-eye-fill fs-5 text-body-secondary"></i></a>
+                                    <a href="/users/@user.Id/edit"><i class="bi bi-pen-fill fs-6 text-body-secondary"></i></a>
+                                    <button class="btn btn-link p-0" @onclick="() => OpenDeleteModal(user)">
+                                        <i class="bi bi-trash3-fill fs-6 text-danger"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@if (userToDelete != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmer la suppression</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>@userToDelete.Firstname @userToDelete.Lastname</strong> ?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseDeleteModal">Annuler</button>
+                    <button class="btn btn-danger" @onclick="DeleteUserConfirmed">Supprimer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<User>? users;
+    private User? userToDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            users = await HttpClient.GetFromJsonAsync<List<User>>("api/users");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("Erreur lors du chargement des utilisateurs : " + ex.Message);
+        }
+    }
+
+    private void OpenDeleteModal(User user)
+    {
+        userToDelete = user;
+    }
+
+    private void CloseDeleteModal()
+    {
+        userToDelete = null;
+    }
+
+    private async Task DeleteUserConfirmed()
+    {
+        if (userToDelete == null)
+            return;
+
+        try
+        {
+            var response = await HttpClient.DeleteAsync($"api/users/{userToDelete.Id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                users?.Remove(userToDelete);
+                CloseDeleteModal();
+            }
+            else
+            {
+                Console.WriteLine($"Erreur lors de la suppression : {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erreur : " + ex.Message);
+        }
+    }
+}
