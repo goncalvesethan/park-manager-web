@@ -1,0 +1,83 @@
+﻿@page "/users/{id:int}"
+@inject HttpClient HttpClient
+@using Models
+@attribute [Authorize]
+
+<PageTitle>Détails de l'utilisateur</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <h2>Informations de l'utilisateur</h2>
+        @if (user == null)
+        {
+            <div class="d-flex justify-content-center">
+                <div class="alert alert-info text-center" role="alert" style="width: 100%;">
+                    Informations en cours de chargement...
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-2">
+                <div class="col-md-3 text-center">
+                    <div>
+                        <i class="bi bi-person-circle text-body-secondary" style="font-size: 7em;"></i>
+                    </div>
+                </div>
+
+                <div class="row col-md-8 d-flex flex-row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-person-badge me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Nom : </span> @user.Lastname</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-person me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Prénom : </span> @user.Firstname</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-envelope me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div><span class="fw-bold">Email : </span> @user.Email</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-shield-lock me-2 text-black" style="font-size: 1.7em;"></i>
+                            <div>
+                                <span class="fw-bold">Rôle : </span>
+                                <span class="badge @(user.IsAdmin ? "bg-primary" : "bg-secondary")">
+                                    @(user.IsAdmin ? "Administrateur" : "Utilisateur")
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <hr class="my-5">
+</div>
+
+@code {
+    [Parameter] public int id { get; set; }
+    private User? user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            user = await HttpClient.GetFromJsonAsync<User>($"api/users/{id}");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Erreur lors du chargement des données : {ex.Message}");
+        }
+    }
+}
